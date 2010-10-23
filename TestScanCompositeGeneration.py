@@ -27,6 +27,6 @@ if __name__=="__main__":
              "fixtures/Z_SCAN_C_ESWI_20101016080500_sevar_000000.h5",
              "fixtures/Z_SCAN_C_ESWI_20101016080500_sevil_000000.h5"]
 
-  for file in FIXTURES1:
+  for file in FIXTURES2:
     BaltradFrame.inject(file, channel="smhi_products", url="http://localhost:8080/BaltradDex/dispatch.htm", sender="admin")
 
