@@ -1,6 +1,7 @@
 import BaltradFrame
 
 if __name__=="__main__":
+  X="""
   FIXTURES1=["fixtures/Z_SCAN_C_ESWI_20101016080000_seang_000000.h5",
              "fixtures/Z_SCAN_C_ESWI_20101016080000_searl_000000.h5",
              "fixtures/Z_SCAN_C_ESWI_20101016080000_sease_000000.h5",
@@ -26,7 +27,8 @@ if __name__=="__main__":
              "fixtures/Z_SCAN_C_ESWI_20101016080500_seovi_000000.h5",
              "fixtures/Z_SCAN_C_ESWI_20101016080500_sevar_000000.h5",
              "fixtures/Z_SCAN_C_ESWI_20101016080500_sevil_000000.h5"]
-
+"""
+  FIXTURES1=["fixtures/Z_SCAN_C_ESWI_20101016080000_seang_000000.h5"]
   for file in FIXTURES1:
     BaltradFrame.inject_file(file, "http://localhost:8080/BaltradDex/dispatch.htm")
 

@@ -275,7 +275,8 @@ if __name__=="__main__":
              "fixtures2/Z_SCAN_C_ESWI_20101023182000_sevar_000000.h5",
              "fixtures2/Z_SCAN_C_ESWI_20101023182000_sevil_000000.h5"]
 
+  #BaltradFrame.inject(FIXTURES[0], channel="smhi_products", url="http://localhost:8084/BaltradDex/dispatch.htm", sender="admin")
   for file in FIXTURES:
-    BaltradFrame.inject(file, channel="smhi_products", url="http://localhost:8080/BaltradDex/dispatch.htm", sender="admin")
+    BaltradFrame.inject(file, channel="smhi_products", url="http://localhost:8084/BaltradDex/dispatch.htm", sender="admin")
     time.sleep(0.2)
 
