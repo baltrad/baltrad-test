@@ -2,7 +2,7 @@ import _raveio
 import _ravefield, _polarvolume
 import numpy
 import BaltradFrame
-import sys, time, datetime, getopt, string, re, os
+import sys, time, datetime, getopt, string, re, os, math
 import rave_tempfile
 
 FIXTURES_SCAN=["fixtures/Z_SCAN_C_ESWI_20101016080000_seang_000000.h5",
@@ -33,7 +33,7 @@ FIXTURES_PVOL=["fixtures4/seang_pvol_20140220T1300Z.h5",
 
 
 class filebatch(object):
-  def __init__(self, dtstr=None, interval=15, periods=1, reruns=0, sources=[], ftype="SCAN"):
+  def __init__(self, dtstr=None, interval=15, periods=1, reruns=0, sources=[], ftype="SCAN", elangles=None):
     self.dtstr = dtstr
     if dtstr is None:
       self.dt = self.get_closest_time(interval)
@@ -45,6 +45,7 @@ class filebatch(object):
     self.sources = sources
     self.ftype = ftype
     self.addmalfunc = False
+    self.elangles = self.parse_elangles(elangles)
 
   def __str__(self):
     return "%s: interval = %d, periods = %d, reruns = %d"%(self.dt.strftime("%Y%m%d%H%M%S"),self.interval,self.periods, self.reruns)
@@ -52,10 +53,18 @@ class filebatch(object):
   def __repr__(self):
     return self.__str__()
 
+  def parse_elangles(self, elangles):
+    result = []
+    if elangles != None:
+      astr = elangles.rstrip().lstrip().split(",")
+      for x in astr:
+        result.append(float(x.rstrip().lstrip()))
+    return result
+
   def execute_once(self):
     for pindex in range(self.periods):
       tstr = (self.dt + datetime.timedelta(minutes = pindex*self.interval)).strftime("%Y%m%d%H%M%S")
-      print "Injecting files for %s"%tstr
+      print("Injecting files for %s"%tstr)
       d = tstr[:8]
       t = tstr[8:]
       avgtime = 0.0
@@ -78,7 +87,7 @@ class filebatch(object):
             scan.date = d
             scan.time = t
 
-        if len(self.sources) > 0:
+        if self.sources != None and len(self.sources) > 0:
           if self.ftype == "SCAN":
             srcm = f[38:43]
           else:
@@ -86,23 +95,33 @@ class filebatch(object):
           if not srcm in self.sources:
             continue
 
-        o = _raveio.new()
-        o.object = obj
-        fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
-        currt = time.clock()
-        try:
-          o.save(outfile)
-          BaltradFrame.inject_file(outfile, "http://localhost:8080/BaltradDex")
-          injet = time.clock() - currt
-          avgtime = avgtime + injet
+        if self.ftype == "SCAN" and len(self.elangles) > 0:
+          currt = time.clock()
+          for x in self.elangles:
+            obj.elangle = x * math.pi / 180.0
+            self.upload_object(obj)
+            nrfiles = nrfiles + 1
+          avgtime = avgtime + (time.clock() - currt)
+        else:
+          currt = time.clock()
+          self.upload_object(obj)
           nrfiles = nrfiles + 1
-        finally:
-          try:
-            os.unlink(outfile)
-          except:
-            pass
+          avgtime = avgtime + (time.clock() - currt)
       if nrfiles != 0:
-        print "File injection of %d files took an average of %f seconds"%(nrfiles, (avgtime / nrfiles))
+        print("File injection of %d files took an average of %f seconds"%(nrfiles, (avgtime / nrfiles)))
+
+  def upload_object(self, pobj):
+    o = _raveio.new()
+    o.object = pobj
+    fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
+    try:
+      o.save(outfile)
+      BaltradFrame.inject_file(outfile, "http://localhost:8080/BaltradDex")
+    finally:
+      try:
+        os.unlink(outfile)
+      except:
+        pass
 
   def get_closest_time(self, interval):
     t = time.localtime()
@@ -123,17 +142,18 @@ if __name__=="__main__":
   interval = 15
   periods = 1
   reruns = 0
-  sources = []
+  sources = None
   ftype = "SCAN"
   addmalfunc = False
+  elangles = None
 
   optlist = []
   args = []
   try:
     optlist, args = getopt.getopt(sys.argv[1:], '', 
-                                  ['datetime=','interval=','periods=','reruns=','sources=','type=', 'addmalfunc'])
-  except getopt.GetoptError, e:
-    print e.__str__()
+                                  ['datetime=','interval=','periods=','reruns=','sources=','type=', 'addmalfunc', 'elangles='])
+  except getopt.GetoptError as e:
+    print(e.__str__())
     sys.exit(127)
 
   for o, a in optlist:
@@ -151,10 +171,14 @@ if __name__=="__main__":
       if a in ["PVOL", "SCAN"]:
         ftype = a
       else:
-        print "Ignoring type since it isn't PVOL or SCAN"
+        print("Ignoring type since it isn't PVOL or SCAN")
     elif o == "--addmalfunc":
       addmalfunc = True
-  a = filebatch(dstr, interval, periods, reruns, sources, ftype)
+    elif o == "--elangles":
+      elangles = a
+      print("Elangles=%s"%elangles)
+
+  a = filebatch(dstr, interval, periods, reruns, sources, ftype, elangles)
   a.addmalfunc = addmalfunc
   a.execute_once()
 
