@@ -166,7 +166,7 @@ if __name__=="__main__":
     elif o == "--reruns":
       reruns = int(a)
     elif o == "--sources":
-      sources = string.split(a,',')
+      sources = a.split(",")
     elif o == "--type":
       if a in ["PVOL", "SCAN"]:
         ftype = a
